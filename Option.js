@@ -1,10 +1,22 @@
-Ext.create('ExtractApp.store.Option', {
+Ext.define('ExtractApp.store.Option', {
     extend: 'Ext.data.Store',
-    alias: 'store.options',
-    fields: ['abbr', 'name'],
+    storeId: 'Option',
+
+    alias: 'store.option',
+
+    // model: 'ExtractApp.model.Personnel',
+    fields: ['option', 'id'],
     data: [
-        { "abbr": "AL", "name": "Alabama" },
-        { "abbr": "AK", "name": "Alaska" },
-        { "abbr": "AZ", "name": "Arizona" }
-    ]
+        { option: 'Name', id: 'name' },
+        { option: 'Description', id: 'desc' }
+    ],
+    // data: [], // Initialize the store with an empty array
+
+    proxy: {
+        type: 'memory',
+        reader: {
+            type: 'json',
+            rootProperty: 'items'
+        }
+    }
 });
