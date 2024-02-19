@@ -6,30 +6,40 @@ Ext.define('ExtractApp.view.main.MainModel', {
 
     alias: 'viewmodel.main',
     record: {},
-    controllers: {
-        mainController: 'controller.main'
-    },
 
+    // controller: 'main',
     data: {
-        record: [],
         name: 'ExtractApp',
-        jsonData: "",
+        JsonDataArr: [],
+        JData: '',
     },
     formulas: {
-        // displayJson: function (get) {
-        //     // var mainController = this.getView().getController();
-        //     // console.log(mainController.getJsonData());
-        //     // return mainController ? mainController.getJsonData() : null; 
+        getFormattedOutputFromJson: function (get) {
+            const LJsonDataStr = get('JData');
+            if (!LJsonDataStr) return '';
 
-        //     console.log("hello world")
-        //     var mainController = get('jsonData');
-        //     console.log(mainController)
-        //     return mainController;
-        // },
+            const LDataArr = JSON.parse(LJsonDataStr);
+            let LDisplayOutputHtmlStr = '';
 
-        displayExtractedData: function () {
-            return "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-        }
+            for (const LItemObj of LDataArr) {
+                let LHtmlComponent = '';
+                if (LItemObj.name) {
+                    LHtmlComponent += `<h3 class="data-head">Name: ${LItemObj.name}</h3>`;
+                }
+                if (LItemObj.description) {
+                    LHtmlComponent += `<p class="data-body"><b>Description:</b> ${LItemObj.description}</p>`;
+                }
+                LHtmlComponent += '<span class="diff-line"></span>';
+                LDisplayOutputHtmlStr += LHtmlComponent;
+            }
+
+            return LDisplayOutputHtmlStr;
+        },
+        displayJson: function (get) {
+            return get('JData');
+        },
+
+
     }
 
     //TODO - add data, formulas and/or methods to support your view
