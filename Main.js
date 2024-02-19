@@ -6,13 +6,13 @@
  * TODO - Replace this content of this view to suite the needs of your application.
  */
 Ext.define('ExtractApp.view.main.Main', {
-    extend: 'Ext.container.Container',
+    extend: 'Ext.panel.Panel',
     xtype: 'app-main',
-    id: 'main',
+
     requires: [
         'Ext.plugin.Viewport',
         'Ext.window.MessageBox',
-        'ExtractApp.store.Personnel',
+
         'ExtractApp.view.main.MainController',
         'ExtractApp.view.main.MainModel',
         'ExtractApp.view.main.List'
@@ -20,12 +20,21 @@ Ext.define('ExtractApp.view.main.Main', {
 
     controller: 'main',
     viewModel: 'main',
+
     ui: 'navigation',
 
     tabBarHeaderPosition: 1,
     titleRotation: 0,
     tabRotation: 0,
-    store: 'datastore', 
+
+
+    tabBar: {
+        flex: 1,
+        layout: {
+            align: 'stretch',
+            overflowHandler: 'none'
+        }
+    },
 
     responsiveConfig: {
         tall: {
@@ -54,14 +63,22 @@ Ext.define('ExtractApp.view.main.Main', {
     },
 
     items: [{
-        title: 'Home',
-        autoscroll: true,
-        // The following grid shares a store with the classic version's grid as well!
+        xtype: 'panel',
+        title: 'Copy Paste Enhancement',
         items: [{
             xtype: 'button',
-            text: "Paste Here",
-            handler: 'generateGrid'
-        },]
-    }],
-
+            text: 'paste here',
+            handler: 'getPastedCode',
+        }
+        ],
+    },
+        // {
+        //     title: 'Home',
+        //     iconCls: 'fa-home',
+        //     // The following grid shares a store with the classic version's grid as well!
+        //     items: [{
+        //         xtype: 'mainlist'
+        //     }]
+        // }
+    ]
 });
