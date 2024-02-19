@@ -8,7 +8,9 @@
 Ext.define('ExtractApp.view.main.Main', {
     extend: 'Ext.panel.Panel',
     xtype: 'app-main',
+    id: 'mainView',
 
+    reference: 'copyController',
     requires: [
         'Ext.plugin.Viewport',
         'Ext.window.MessageBox',
@@ -67,8 +69,12 @@ Ext.define('ExtractApp.view.main.Main', {
         title: 'Copy Paste Enhancement',
         items: [{
             xtype: 'button',
-            text: 'paste here',
+            text: 'Paste Here',
+            iconCls: 'fas fa-paste',
             handler: 'getPastedCode',
+        }, {
+            xtype: 'panel',
+            id: 'show-container',
         }
         ],
     },
