@@ -6,12 +6,10 @@ Ext.define('ExtractApp.store.Personnel', {
 
     model: 'ExtractApp.model.Personnel',
 
-    // data: {
-    //     items: [
-    //         { data: "jeanluc.picard@enterprise.com" },
-    //     ]
-    // },
-    data: [], // Initialize the store with an empty array
+    data: {
+        items: []
+    },
+    // data: [], // Initialize the store with an empty array
 
     proxy: {
         type: 'memory',
