@@ -7,7 +7,6 @@ Ext.define('ExtractApp.Application', {
     extend: 'Ext.app.Application',
 
     name: 'ExtractApp',
-    requires: ['ExtractApp.store.DataStore'],
 
     quickTips: false,
     platformConfig: {
