@@ -1,0 +1,31 @@
+.x-btn {
+    width: 200px;
+    margin: 10px 50px
+}
+
+.display-item {
+    /* background-color: rgb(253, 209, 151); */
+    padding: 10px;
+    margin: 20px;
+    height: 400px;
+    border-radius: 5px;
+    border: 1px solid gray;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+
+}
+
+.diff-line {
+    display: block;
+    /* Ensures the span occupies a full line */
+    border-bottom: 1px dashed #000;
+    /* Adjust color and style as needed */
+    margin-bottom: 10px;
+}
+
+.x-grid-item {
+    padding: 5px;
+}
+
+.x-autocontainer-innerCt {
+    padding: 10px;
+} 
