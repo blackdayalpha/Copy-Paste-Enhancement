@@ -15,13 +15,13 @@ Ext.define('ExtractApp.view.main.MainController', {
      * Retrieves text from the clipboard, splits it based on specified splitters,
      * and generates formatted data for display in a grid.
      */
-    GetPastedCode: function () { 
+    GetPastedCode: function () {
         let LGridPreview = this.lookupReference("id-gridview");
 
         if (LGridPreview) return;
 
         navigator.clipboard.readText().then(clipText => {
-            let LSplitters = ["paragraph", "division", "bullet", "comment", "newline"];
+            let LSplitters = ["paragraph", "division", "bullet", "comment" , "newline"];
             const GDataArray = ExtractApp.view.main.Utility.SplitData.SplitDataUsingInputFormatters(clipText, LSplitters);
             let LStoreData = this.pvtMakeDataForStore(GDataArray);
 
@@ -66,8 +66,6 @@ Ext.define('ExtractApp.view.main.MainController', {
 
         // iterate via dataItems 
         for (let LItemObj of LDataItems) {
-            // for (let LIndex = 0; LIndex < LDataItems.length; LIndex++) {
-            // const LItemObj = LDataItems[LIndex];
             const LCurrentMode = LItemObj.get('mode');
             const LCurrentData = LItemObj.get('data');
 
@@ -117,6 +115,18 @@ Ext.define('ExtractApp.view.main.MainController', {
      */
     ResetView: function () {
         this.lookupReference('id-display-content').destroy()
+    },
+
+    /**
+     * @public
+     * Sets the Default value of the combobox before Rendering it .
+     * @param {Object} p_objCombobox The Combobox Item
+     */
+    SelectTheDefaultOptionHandle: function (p_objCombobox) {
+        var LDefaultValue = p_objCombobox.defaultValue;
+
+        // Set the default value
+        p_objCombobox.setValue(LDefaultValue);
     },
 
     /**
