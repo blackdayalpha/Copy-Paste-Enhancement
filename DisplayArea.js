@@ -1,10 +1,15 @@
+/**
+ * This class represents the display area for formatted and JSON data in the application.
+ * @class ExtractApp.view.main.DisplayArea
+ * @extends Ext.panel.Panel
+ * @xtype app-displayArea
+ * @alias view.displayArea
+ */
 Ext.define('ExtractApp.view.main.DisplayArea', {
     extend: 'Ext.panel.Panel',
     xtype: 'app-displayArea',
     alias: 'view.displayArea',
 
-    // controller: 'main',
-    // viewModel: 'main',
     id: 'id-display-content',
     reference: 'id-display-content',
     maxWidth: '100%',
