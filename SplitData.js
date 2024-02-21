@@ -1,3 +1,8 @@
+/**
+ * This utility class provides methods for splitting data based on specified parameters.
+ * @class ExtractApp.view.main.Utility.SplitData
+ * @singleton
+ */
 Ext.define('ExtractApp.view.main.Utility.SplitData', {
     statics: {
         /**
@@ -18,17 +23,17 @@ Ext.define('ExtractApp.view.main.Utility.SplitData', {
                 // Iterate through each splitting parameter
                 for (const param of p_arrParams) {
                     switch (param) {
-                        case "paragraph":
-                            result = this.pvtSplitDataByTag(result, /<p>|<\/p>/ig);
-                            break;
                         case "division":
-                            result = this.pvtSplitDataByTag(result, /<div>|<\/div>/ig);
+                            result = this.pvtSplitDataByTag(result, /<div[^>]*>|<\/div>/gi);
                             break;
                         case "bullet":
                             result = this.pvtSplitDataByTag(result, /<li>|<\/li>|<ul>|<\/ul>|<ol>|<\/ol>/ig);
                             break;
                         case "comment":
                             result = this.pvtRemoveComments(result);
+                            break;
+                        case "paragraph":
+                            result = this.pvtSplitDataByTag(result, /\r?\n[\r?\n]*\r?\n/);
                             break;
                         case "newline":
                             result = this.pvtSplitDataBySeparator(result, /\r?\n/);
