@@ -6,9 +6,8 @@ Ext.define('ExtractApp.store.Personnel', {
 
     model: 'ExtractApp.model.Personnel',
 
-    data: {
-        items: []
-    },
+    // data: { 
+    // },
     // data: [], // Initialize the store with an empty array
 
     proxy: {
