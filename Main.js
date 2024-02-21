@@ -22,7 +22,7 @@ Ext.define('ExtractApp.view.main.Main', {
     ui: 'navigation',
 
     title: 'Copy Paste Enhancement',
-
+    width: '100%',
     items: [{
         xtype: 'panel',
         items: [{
