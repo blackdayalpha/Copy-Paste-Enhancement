@@ -6,39 +6,53 @@ Ext.define('ExtractApp.view.main.DisplayArea', {
     // controller: 'main',
     // viewModel: 'main',
     id: 'id-display-content',
-    alert: console.log('Display Area created!'),
+    reference: 'id-display-content',
+    maxWidth: '100%',
     items: [
         {
-            layout: 'hbox',
+            layout: {
+                type: 'hbox',
+                pack: 'center'
+            },
             id: 'display-area',
-            items: [{
+            defaults: {
                 xtype: 'panel',
-                emptyText: 'hello',
-                title: 'Formatted Data',
-                flex: 1,
-                bind: { html: '{getFormattedOutputFromJson}' },
                 cls: 'display-item',
-                height: 350,
-                scrollable: true
+                height: 550,
+                scrollable: true,
+                flex: 1,
+                maxWidth: 800
+            },
+            items: [{
+                title: 'Formatted Data',
+                bind: { html: '{getFormattedOutputFromJson}' },
+                margin: '0 30 20 0'
             },
             {
-                xtype: 'panel',
-                // bind: '{JData}',
-                title: 'JSON',
-                bind: {
-                    html: '{JData}'
-                },
-                flex: 1,
-                height: 350,
-                cls: 'display-item',
-                scrollable: true,
+                title: 'JSON Data',
+                layout: 'fit',
+                items: [{
+                    xtype: 'textareafield',
+                    cls: 'textarea-readonly-cls',
+                    bind: '{JData}',
+                    editable: false,
+                }],
+                margin: '0 0 20 30'
             }]
         },
         {
-            xtype: 'button',
-            id: 'reset-btn',
-            text: 'Reset',
-            handler: 'ResetView',
+            layout: {
+                type: 'hbox',
+                pack: 'center'
+            },
+            items: [{
+                xtype: 'button',
+                id: 'reset-btn',
+                text: 'Reset',
+                handler: 'ResetView',
+                tooltip: 'Remove and Delete JSON Data',
+                margin: '20 0 20 15'
+            }]
         }
     ]
 });
