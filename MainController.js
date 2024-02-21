@@ -1,241 +1,181 @@
 /**
- * This class is the controller for the main view for the application. It is specified as
- * the "controller" of the Main view class.
+ * Controller class for the main view of the application.
+ * @class ExtractApp.view.main.MainController
+ * @extends Ext.app.ViewController
  */
 Ext.define('ExtractApp.view.main.MainController', {
     extend: 'Ext.app.ViewController',
 
     alias: 'controller.main',
-    GDataArr: [],
 
-    getPastedCode: function () {
-        let LCopiedData;
-        let LDataObjArr;
-        let grid = Ext.getCmp("id-gridview");
-        if (grid) return
+    requires: ['ExtractApp.view.main.Utility.SplitData'],
+
+    /**
+     * @public
+     * Retrieves text from the clipboard, splits it based on specified splitters,
+     * and generates formatted data for display in a grid.
+     */
+    GetPastedCode: function () { 
+        let LGridPreview = this.lookupReference("id-gridview");
+
+        if (LGridPreview) return;
+
         navigator.clipboard.readText().then(clipText => {
-            LCopiedData = clipText;
-            let LSplitters = ["\n", "\r"]
-            this.GDataArray = this.pvtSplitData(LCopiedData, LSplitters);
+            let LSplitters = ["paragraph", "division", "bullet", "comment", "newline"];
+            const GDataArray = ExtractApp.view.main.Utility.SplitData.SplitDataUsingInputFormatters(clipText, LSplitters);
+            let LStoreData = this.pvtMakeDataForStore(GDataArray);
 
-            LDataObjArr = this.pvtMakeDataForStore(this.GDataArray);
-            return LDataObjArr;
-        }).then((p_objFormattedData) => {
-            console.log(p_objFormattedData)
-            this.generateGrid(p_objFormattedData)
-        })
+            this.pvtGenerateGrid(LStoreData);
+        }).catch(err => console.error(err))
     },
 
-    generateJson: function () {
-        const store = Ext.getStore('Personnel');
-        const items = store.getData().items;
+    /**
+     * @public
+     * Adds the selected option to the store.
+     * @param {Object} p_objCombo The combo box component.
+     * @param {Object} p_arrRecord The selected record.
+     */
+    AddSelectedOptionToStore: (p_objCombo, p_arrRecord) => {
+        let LMainGrid = p_objCombo.up('gridpanel');
+        while (LMainGrid && !LMainGrid.isXType('gridpanel')) {
+            LMainGrid = LMainGrid.up('gridpanel');
+        }
 
-        let jsonObjects = [];
-        let currentObject = {};
+        if (LMainGrid) {
+            const LSelectionModel = LMainGrid.getSelectionModel();
+            const LRecordIndex = LMainGrid.getStore().indexOf(p_objCombo.getWidgetRecord());
+            LSelectionModel.select(LRecordIndex);
+            const LSelectedRecord = LSelectionModel.getSelection()[0];
+            LSelectedRecord.set('mode', p_arrRecord.get('id'));
+        } else {
+            console.error('Main grid not found.');
+        }
+    },
 
-        for (let i = 0; i < items.length; i++) {
-            const item = items[i];
-            const mode = item.get('mode');
-            const data = item.get('data');
+    /**
+     * @public
+     * Generates JSON data based on the data in the grid store and updates the view model.
+     */
+    GenerateJsonHandle: function () {
+        // get store
+        const LCurrentStore = Ext.getStore('Personnel');
+        const LDataItems = LCurrentStore.getData().items;
 
-            if (mode === 'name') {
-                if (Object.keys(currentObject).length !== 0) {
-                    jsonObjects.push(currentObject);
-                    currentObject = {};
+        let LJsonObjectsArr = [];
+        let LCurrentObject = {};
+
+        // iterate via dataItems 
+        for (let LItemObj of LDataItems) {
+            // for (let LIndex = 0; LIndex < LDataItems.length; LIndex++) {
+            // const LItemObj = LDataItems[LIndex];
+            const LCurrentMode = LItemObj.get('mode');
+            const LCurrentData = LItemObj.get('data');
+
+            if (LCurrentMode === 'desc') {
+                LCurrentObject.description = (LCurrentObject.description || '') + LCurrentData + ' ';
+            }
+            // default mode is name
+            else {
+                if (Object.keys(LCurrentObject).length !== 0) {
+                    LJsonObjectsArr.push(LCurrentObject);
+                    LCurrentObject = {};
                 }
-                currentObject.name = data;
-            } else {
-                currentObject.description = (currentObject.description || '') + data;
+                LCurrentObject.name = LCurrentData;
             }
         }
 
-        if (Object.keys(currentObject).length !== 0) {
-            jsonObjects.push(currentObject);
+
+        if (Object.keys(LCurrentObject).length !== 0) {
+            LJsonObjectsArr.push(LCurrentObject);
         }
 
-        const jsonObj = JSON.stringify(jsonObjects, null, 2);
-        this.GJsonData = jsonObj;
+        const LJsonGenerated = JSON.stringify(LJsonObjectsArr, null, 2);
 
         // Update jsonData in view model
-        var viewModel = this.getViewModel();
-        if (viewModel) {
-            viewModel.set('JData', jsonObj);
+        var LCurrentViewModel = this.getViewModel();
+        if (LCurrentViewModel) {
+            LCurrentViewModel.set('JData', LJsonGenerated);
         }
-        console.log(viewModel.data)
 
-        Ext.getCmp('gridView').destroy();
-        Ext.getCmp('genBtn').destroy();
-        Ext.getCmp('cancel-btn').destroy();
-        console.log("after ", this.GJsonData);
-
-        this.generateDisplayArea();
+        // destroy grid
+        this.CancelJsonGeneration();
+        // generate display area
+        this.pvtGenerateDisplayArea();
     },
 
-    getJsonData: function () {
-        return this.GJsonData;
-    },
+    /**
+     * @public
+     * Cancels the generation of JSON data.
+     */
     CancelJsonGeneration: function () {
-        Ext.getCmp('id-gridview').destroy()
-        // Ext.getCmp('gridView').destroy();
-        // Ext.getCmp('genBtn').destroy();
-        // Ext.getCmp('cancel-btn').destroy();
+        this.lookupReference("id-gridview").destroy()
     },
+
+    /**
+     * @public
+     * Resets the view.
+     */
     ResetView: function () {
-        Ext.getCmp('id-display-content').destroy()
-        // Ext.getCmp('display-area').destroy();
-        // Ext.getCmp('reset-btn').destroy();
+        this.lookupReference('id-display-content').destroy()
     },
 
-    generateDisplayArea: function () {
-        var viewModel = this.getViewModel();
-        console.log(viewModel.data.JData)
-
+    /**
+     * @private
+     * Generates the display area.
+     */
+    pvtGenerateDisplayArea: function () {
         let LDisplayArea = Ext.create('view.displayArea');
         this.pvtAppendItemToContainer(LDisplayArea)
-        // this.getView().add(LDisplayArea)
     },
 
-    generateGrid: function (p_objFormattedData) {
-        let Grid = Ext.create("view.gridView");
-        this.updateStoreData(p_objFormattedData);
-        this.pvtAppendItemToContainer(Grid)
-        // this.getView().add(Grid);
+    /**
+     * @private
+     * Generates the grid and updates its store data.
+     * @param {Object[]} p_objFormattedData An array of formatted data objects.
+     */
+    pvtGenerateGrid: function (p_objFormattedData) {
+        let LGridComponent = Ext.create("view.gridView");
+        this.pvtUpdateStoreData(p_objFormattedData);
+        this.pvtAppendItemToContainer(LGridComponent)
     },
 
+    /**
+     * @private
+     * Appends an item to the container.
+     * @param {Object} p_objItem The item to append.
+     */
     pvtAppendItemToContainer(p_objItem) {
-        let LShowContainer = Ext.getCmp('show-container');
-
-        LShowContainer.removeAll();
-        LShowContainer.add(p_objItem);
+        let LShowContainer = this.lookupReference('show-container');
+        try {
+            LShowContainer.removeAll();
+            LShowContainer.add(p_objItem);
+        } catch (err) {
+            this.CancelJsonGeneration()
+        }
     },
 
+    /**
+     * @private
+     * Formats data for the store.
+     * @param {string[]} p_arrData An array of data strings.
+     * @returns {Object[]} An array of formatted data objects.
+     */
     pvtMakeDataForStore: function (p_arrData) {
         return p_arrData.map(item => ({ data: item }));
     },
 
-    //problem
-    //text repeating
-    pvtSplitData: function (data, splitters) {
-        // Joining splitters to create a single regular expression for tag removal
-        const tagsRegex = new RegExp(`<[^>]+>`, 'g');
-
-        // Remove tags
-        const cleanData = data.replace(tagsRegex, '');
-        console.log(tagsRegex)
-        // Joining splitters to create a single regular expression for splitting
-        const splitRegex = new RegExp(splitters.join('|'), 'g');
-
-        // Split data based on splitters
-        const splitData = cleanData.split(splitRegex);
-
-        // Filter out empty strings
-        return splitData.filter(str => str.trim() !== '');
-
-    },
-
-    updateStoreData: function (p_arrData) {
-        var store = Ext.getStore('Personnel');
-        // console.log(store)
-        if (store) {
-            store.removeAll();
-            store.loadData(p_arrData);
+    /**
+     * @private
+     * Updates the store data with the provided array of data objects.
+     * @param {Object[]} p_arrData An array of data objects.
+     */
+    pvtUpdateStoreData: function (p_arrData) {
+        var LCurrentStore = Ext.getStore('Personnel');
+        if (LCurrentStore) {
+            LCurrentStore.removeAll();
+            LCurrentStore.loadData(p_arrData);
         } else {
             console.error('Store "datastore" not found.');
         }
     },
-
-    onItemSelected: function (sender, record) {
-        console.log(Ext.getStore('Personnel'))
-    },
-
-    displayExtractedData: function (displayField) {
-        let LoutputHTML = "";
-        var viewModel = this.getViewModel();
-        let LDataArr = viewModel.data.JData;
-        console.log(LDataArr)
-        for (let data of LDataArr) {
-            let LComponentHtml = `<h3 class= 'data-head'>${data.name}</h3> <p class= 'data-body'>${data.description}</p><span class="diff-line"></span>`;
-            LoutputHTML += LComponentHtml;
-        }
-        displayField.setRawValue(LoutputHTML);
-    },
-
-    onConfirm: function (choice) {
-        if (choice === 'yes') {
-            //
-        }
-    }
 });
-
-
-
-// const combinedPattern = new RegExp(
-//     "(" +
-//     splitters.join("|") +
-//     "|(<li[^>]*>.*?</li>)|(<\\/?ol>|<\\/?ul>))",
-//     "g"
-// );
-
-// // Split the data using the combined pattern
-// let splitData = data.split(combinedPattern);
-// splitData = splitData.filter(value => value != undefined)
-// console.log(splitData)
-// // Filter out empty lines and list item tags, and return the result
-// return splitData.filter(line => line.trim() !== "" && !line.startsWith("<li"));
-
-// const combinedSplitter = new RegExp("(" + splitters.join("|") + ")", "g");
-
-// // Split the data using the combined splitter
-// const splitData = data.split(combinedSplitter);
-
-// // Filter out empty lines and return the result
-// return splitData.filter(line => line.trim() !== "");
-// // let LSplittedData = data.split(/\r?\n/);
-// // return LSplittedData.filter(line => line.trim() !== "");
-// let splitData = [];
-// splitters.forEach(splitter => {
-//     splitData = splitData.concat(data.split(new RegExp(splitter)));
-// });
-// return splitData.filter(line => line.trim() !== "");
-
-// -----
-
-// const jsonObj = JSON.stringify(jsonObjects, null, 2);
-// this.GJsonData = jsonObj;
-
-// // console.log("before", this.GJsonData);
-// console.log("after ", this.GJsonData);
-// console.log(this.getJsonData())
-// // bind this.GJsonData to the jsonData var in viewModel
-// // Update jsonData in view model
-// var viewModel = this.getViewModel();
-// if (viewModel) {
-//     viewModel.set('jsonData', jsonObj);
-// }
-
-// Ext.getCmp('gridView').destroy();
-// Ext.getCmp('genBtn').destroy();
-// // .get('genBtn').disable = true;
-// this.generateDisplayArea();
-
-// --------
-
-
-// let LCopiedData;
-// // let personnelStore = Ext.getStore('Personnel');
-// let LDataObjArr
-// navigator.clipboard.readText().then(clipText => {
-//     LCopiedData = clipText;
-//     let LSplitters = ["\n"]
-//     this.GDataArray = this.pvtSplitData(LCopiedData, LSplitters);
-
-//     LDataObjArr = this.pvtMakeDataForStore(this.GDataArray);
-//     return LDataObjArr;
-// }).then((p_objFormattedData) => {
-//     let Grid = Ext.create("view.mainlist");
-//     this.getView().add(Grid);
-//     this.updateStoreData(p_objFormattedData);
-//     console.log(this.GDataArray)
-// })
-
-
