@@ -7,10 +7,8 @@ Ext.define('ExtractApp.view.main.MainModel', {
     alias: 'viewmodel.main',
     record: {},
 
-    // controller: 'main',
     data: {
-        name: 'ExtractApp',
-        JsonDataArr: [],
+        name: 'ExtractApp', 
         JData: '',
     },
     formulas: {
@@ -34,13 +32,7 @@ Ext.define('ExtractApp.view.main.MainModel', {
             }
 
             return LDisplayOutputHtmlStr;
-        },
-        displayJson: function (get) {
-            return get('JData');
-        },
-
-
+        } 
     }
 
-    //TODO - add data, formulas and/or methods to support your view
 });
