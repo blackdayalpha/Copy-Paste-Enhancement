@@ -11,8 +11,7 @@ Ext.define('ExtractApp.view.main.List', {
     margin: '0 0 15 0',
     padding: '10 10 10 10',
     border: true,
-
-    markDirty: false,
+ 
     store: {
         type: 'personnel'
     },
@@ -24,6 +23,7 @@ Ext.define('ExtractApp.view.main.List', {
         dataIndex: 'mode',
         value: 'name',
         markDirty: false,
+        minWidth : '100', 
 
         widget: {
             xtype: 'combo',
@@ -39,7 +39,10 @@ Ext.define('ExtractApp.view.main.List', {
         flex: 1
     },
     {
-        text: 'Data', dataIndex: 'data', flex: 3, sortable: false
+        text: 'Data', dataIndex: 'data', flex: 3, sortable: false,
+        renderer: function (value) {
+            return Ext.util.Format.htmlEncode(value); // Encode HTML entities
+        }
     }
     ],
 });
