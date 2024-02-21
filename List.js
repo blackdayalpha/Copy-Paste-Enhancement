@@ -1,5 +1,11 @@
+
 /**
- * This view is an example list of people.
+ * This class represents the main list view for the application.
+ * It extends Ext.grid.Panel and displays personnel data.
+ * @class ExtractApp.view.main.List
+ * @extends Ext.grid.Panel
+ * @xtype mainlist
+ * @alias view.mainlist
  */
 Ext.define('ExtractApp.view.main.List', {
     extend: 'Ext.grid.Panel',
@@ -11,38 +17,53 @@ Ext.define('ExtractApp.view.main.List', {
     margin: '0 0 15 0',
     padding: '10 10 10 10',
     border: true,
- 
+
     store: {
         type: 'personnel'
     },
 
-    columns: [{
-        text: 'Field Name',
-        width: 150,
-        xtype: 'widgetcolumn',
-        dataIndex: 'mode',
-        value: 'name',
-        markDirty: false,
-        minWidth : '100', 
+    emptyText: 'No Data to Display',
+    emptyCls: 'empty-text',
 
-        widget: {
-            xtype: 'combo',
-            store: {
-                type: 'option'
+    columns: [
+        {
+            text: 'Field Name',
+            width: 150,
+            xtype: 'widgetcolumn',
+            dataIndex: 'mode',
+            
+            widget: {
+                xtype: 'combo',
+                store: {
+                    type: 'option'
+                },
+                displayField: 'option',
+                valueField: 'id',
+                defaultValue: 'name',
+                markDirty: false,
+                editable: false,
+                listeners: {
+                    beforerender: 'SelectTheDefaultOptionHandle',
+                    select: 'AddSelectedOptionToStore'
+                }
             },
-            displayField: 'option',
-            valueField: 'id',
-            listeners: {
-                select: 'AddSelectedOptionToStore'
-            }
+            flex: 1
         },
-        flex: 1
-    },
-    {
-        text: 'Data', dataIndex: 'data', flex: 3, sortable: false,
-        renderer: function (value) {
-            return Ext.util.Format.htmlEncode(value); // Encode HTML entities
+        {
+            text: 'Data',
+            dataIndex: 'data',
+            flex: 3,
+            sortable: false,
+            /**
+             * @cfg {Function} renderer
+             * Function to customize the rendering of data in this column.
+             * It encodes HTML entities in the value.
+             * @param {String} value The value to be rendered.
+             * @return {String} The HTML-encoded value.
+             */
+            renderer: function (value) {
+                return Ext.util.Format.htmlEncode(value); // Encode HTML entities
+            }
         }
-    }
     ],
 });
