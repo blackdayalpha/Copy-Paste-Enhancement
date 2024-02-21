@@ -1,3 +1,11 @@
+/**
+ * This class represents the grid view for selecting fields in the application.
+ * It extends Ext.panel.Panel and provides options to select fields and generate JSON data.
+ * @class ExtractApp.view.main.GridView
+ * @extends Ext.panel.Panel
+ * @xtype app-gridView
+ * @alias view.gridView
+ */
 Ext.define('ExtractApp.view.main.GridView', {
     extend: 'Ext.panel.Panel',
     xtype: 'app-gridView',
