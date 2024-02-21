@@ -11,11 +11,9 @@ Ext.define('ExtractApp.view.main.Main', {
     reference: 'copyController',
     requires: [
         'Ext.plugin.Viewport',
-        'Ext.window.MessageBox',
 
         'ExtractApp.view.main.MainController',
         'ExtractApp.view.main.MainModel',
-        'ExtractApp.view.main.List'
     ],
 
     controller: 'main',
