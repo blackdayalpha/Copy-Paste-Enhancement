@@ -1,5 +1,8 @@
 /**
  * This class is the view model for the Main view of the application.
+ * @class ExtractApp.view.main.MainModel
+ * @extends Ext.app.ViewModel
+ * @alias viewmodel.main
  */
 Ext.define('ExtractApp.view.main.MainModel', {
     extend: 'Ext.app.ViewModel',
@@ -8,10 +11,16 @@ Ext.define('ExtractApp.view.main.MainModel', {
     record: {},
 
     data: {
-        name: 'ExtractApp', 
+        name: 'name',
         JData: '',
     },
     formulas: {
+        /**
+        * Computes the formatted output HTML from the JSON data.
+        * @method getFormattedOutputFromJson
+        * @param {Function} get - The get function to access data from the view model.
+        * @returns {string} The HTML formatted output from the JSON data.
+        */
         getFormattedOutputFromJson: function (get) {
             const LJsonDataStr = get('JData');
             if (!LJsonDataStr) return '';
@@ -32,7 +41,7 @@ Ext.define('ExtractApp.view.main.MainModel', {
             }
 
             return LDisplayOutputHtmlStr;
-        } 
+        }
     }
 
 });
