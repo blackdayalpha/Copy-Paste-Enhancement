@@ -16,7 +16,7 @@ Ext.define('ExtractApp.store.Option', {
         type: 'memory',
         reader: {
             type: 'json',
-            rootProperty: 'items'
+            rootProperty: 'data'
         }
     }
 });
