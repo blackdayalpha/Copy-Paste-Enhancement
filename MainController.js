@@ -17,12 +17,11 @@ Ext.define('ExtractApp.view.main.MainController', {
      */
     GetPastedCode: function () {
         let LGridPreview = this.lookupReference("id-gridview");
-
         if (LGridPreview) return;
 
-        navigator.clipboard.readText().then(clipText => {
-            let LSplitters = ["paragraph", "division", "bullet", "comment" , "newline"];
-            const GDataArray = ExtractApp.view.main.Utility.SplitData.SplitDataUsingInputFormatters(clipText, LSplitters);
+        navigator.clipboard.readText().then(p_strClipText => {
+            let LSplitters = ["paragraph", "division", "bullet", "html"];
+            const GDataArray = ExtractApp.view.main.Utility.SplitData.SplitDataUsingInputFormatters(p_strClipText, LSplitters);
             let LStoreData = this.pvtMakeDataForStore(GDataArray);
 
             this.pvtGenerateGrid(LStoreData);
@@ -156,6 +155,7 @@ Ext.define('ExtractApp.view.main.MainController', {
      */
     pvtAppendItemToContainer(p_objItem) {
         let LShowContainer = this.lookupReference('show-container');
+
         try {
             LShowContainer.removeAll();
             LShowContainer.add(p_objItem);
