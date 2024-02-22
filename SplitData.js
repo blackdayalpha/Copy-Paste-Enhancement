@@ -23,6 +23,9 @@ Ext.define('ExtractApp.view.main.Utility.SplitData', {
                 // Iterate through each splitting parameter
                 for (const param of p_arrParams) {
                     switch (param) {
+                        case "html":
+                            result = this.pvtSplitDataByTag(result, /<[^>]*>|<\/>/g)
+                            break;
                         case "division":
                             result = this.pvtSplitDataByTag(result, /<div[^>]*>|<\/div>/gi);
                             break;
@@ -67,6 +70,7 @@ Ext.define('ExtractApp.view.main.Utility.SplitData', {
         pvtSplitDataBySeparator: function (dataArray, separatorRegex) {
             return dataArray.flatMap(str => str.split(separatorRegex));
         },
+
         /**
          * Helper function to remove comments from the data.
          * @private
