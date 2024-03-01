@@ -1,0 +1,484 @@
+/**
+       * Splits the data into an array of strings based on specified parameters.
+       * @param {string} p_strData The data to be split. 
+       * @param {string[]} p_arrParams Parameters to specify splitting criteria.
+       * If none are passed then newline i.e. ("\r" or "\n") will be considered
+       * User can pass Array of string containing criteria such as "newline", "paragraph","division","bullet","comment"
+       * @returns {string[]} An array of split data strings.
+       */
+  SplitDataUsingInputFormatters: function (p_strData, p_arrParams) {
+    let LMe = this;
+    let LFinalResult = [p_strData]; // Initialize the result array with the original data
+    let Lset = new Set(p_arrParams.map(p_strConstraint => p_strConstraint.toLowerCase()));
+    let LConstraintsAvailable = {
+      HTML_PARAM: "html", 
+      BULLET_PARAM: "bullet", 
+      PARAGRAPH_PARAM: "paragraph",
+      NEWLINE_PARAM: "newline",
+    };
+
+    LFinalResult = LMe.pvtSplitDataByTag(LFinalResult, /<ul[^>]*>[\s\S]*<\/ul>|<ol[^>]*>[\s\S]*<\/ol>/ig);
+                   
+    //check if no array is passed or is an empty array
+    if (!p_arrParams || p_arrParams.length == 0) {
+      LFinalResult = LMe.pvtRemoveSelectedTag(LFinalResult, /<br[^>]*>/gi); 
+    }
+    else {
+      //Use constants instead of Strings directly
+      if (Lset.has(LConstraintsAvailable.HTML_PARAM)) {
+        LFinalResult = LMe.pvtRemoveSelectedTag(LFinalResult, /<[^>]*>|<\/>|&nbsp;/g)
+      }
+      if (Lset.has(LConstraintsAvailable.DIVISION_PARAM)) {
+        LFinalResult = LMe.pvtSplitDataByTag(LFinalResult, /<div[^>]*>|<\/div>/gi);
+      }
+      if (Lset.has(LConstraintsAvailable.BULLET_PARAM)) {  
+        LFinalResult = LMe.pvtSplitDataByTag(LFinalResult, /<li[^>]*>(?:\s|\S)*?<\/li>/ig);
+      } 
+      if (Lset.has(LConstraintsAvailable.PARAGRAPH_PARAM)) { 
+        LFinalResult = LMe.pvtSplitDataByTag(LFinalResult, /<p[^>]*>(?:\s|\S)*?<\/p>/gi);
+      }
+      if (Lset.has(LConstraintsAvailable.NEWLINE_PARAM)) {
+        LFinalResult = LMe.pvtRemoveSelectedTag(LFinalResult, /<br[^>]*>/gi); 
+        // LFinalResult = LMe.pvtSplitDataByTag(LFinalResult, /<span[^>]*>(?:\s|\S)*?<\/span>/gi);
+      }
+    }
+
+    return LFinalResult.filter(str => str.trim() !== '').map(LFormattedString => LFormattedString.trim());
+
+  },
+
+  RemoveTagsFromNameField: function (p_strData) {
+    let LGeneratedArr = this.SplitDataUsingInputFormatters(p_strData, ["html"]);
+    return LGeneratedArr.join(" ").trim() || null;
+  },
+
+pvtSplitDataByTag: function (p_arrdata, p_regTag) { 
+      return p_arrdata.flatMap((str) => {
+        const matches = str.matchAll(p_regTag);
+
+        // Initialize an empty result array
+        const result = [];
+
+        // Iterate through the original string and matches
+        let startIndex = 0;
+        for (const match of matches) {
+          // Extract the matched text and its starting index
+          const matchedText = match[0];
+          const matchIndex = match.index;
+
+          // Add the substring before the match (if any)
+          if (startIndex < matchIndex) {
+            result.push(str.substring(startIndex, matchIndex));
+          }
+
+          // Add the matched text itself
+          result.push(matchedText);
+
+          // Update the starting index for the next iteration
+          startIndex = matchIndex + matchedText.length;
+        }
+
+        // Add the remaining substring after the last match (if any)
+        if (startIndex < str.length) {
+          result.push(str.substring(startIndex));
+        }
+
+        return result;
+      });
+    },
+
+    pvtRemoveSelectedTag: function (p_arrData, p_regTag) {
+      return p_arrData.flatMap(str => str.split(p_regTag).filter(Boolean));
+    },
+
+    /**
+     * Helper function to remove comments from the data.
+     * @private
+     * @param {string[]} p_regTag The array of data strings to remove comments from.
+     * @returns {string[]} An array of data strings without comments.
+     */
+    pvtRemoveComments: function (p_regTag) {
+      const LCommentRegex = /(?<!\S)\/\/[\s\S]*?\n|\/\*[\s\S]*?\*\/|\<!--[\s\S]*--\>/g; // Regex to match both single-line and multi-line comments
+      return p_regTag.flatMap(str => str.split(LCommentRegex)); // Remove comments from each string
+    },
+
+/*******************************************************************/*******************************************************************/*******************************************************************/*******************************************************************
+/**
+ * @class TS.view.editing.classes.tscontrollerPasteEnhancement
+ * @extends Ext.app.ViewController
+ * @alias controller.pasteEnhancementcontroller
+ *
+ * This controller manages the functionality related to paste enhancement, such as generating JSON data and handling cancel actions.
+ */
+Ext.define('TS.view.editing.classes.tscontrollerPasteEnhancement', {
+    extend: 'Ext.app.ViewController',
+    alias: 'controller.pasteEnhancementcontroller',
+
+    /**
+     * @public
+     * Handles the click event on the "Load" button.
+     * Retrieves data from the grid store, generates JSON objects, and fires the 'jsonGenerated' event.
+     * 
+     */
+    HandleOnGenerateJsonClick: function () {
+        // Reference to the controller instance
+        let LMe = this;
+        // Retrieve the current store
+        const LCurrentStore = Ext.getStore('idPastingDataGrid');
+        if (!LCurrentStore) {
+            TS.App.Feedback.ShowErrMsg("Error while Getting Store");
+            return;
+        }
+        console.log(LCurrentStore)
+        let LJsonObjectsArr = LMe.pvtGenerateObjectContainingFormattedData(LCurrentStore)
+
+        // Convert JSON objects array to string
+        const LJsonGenerated = JSON.stringify(LJsonObjectsArr, null, 2);
+        // Get reference to the display window and fire event to pass generated JSON
+        let view = Ext.getCmp('idDisplayWindow')
+        view.fireEvent('jsonGenerated', LJsonGenerated);
+        // Remove window containing grid
+        LMe.pvtRemoveWindowContainingGrid();
+    },
+
+    /**
+     * Generates an array of JSON objects containing formatted data from the provided store data.
+     * @param {Ext.data.Store} p_strStoreData The store containing data to be formatted into JSON objects.
+     * @returns {Array} An array of JSON objects containing formatted data.
+     */
+    pvtGenerateObjectContainingFormattedData(p_strStoreData) {
+        // Array to hold JSON objects
+        const LJsonObjectsArr = [];
+        let LCurrentObject = {};
+        let isFirstItem = true;
+        // Iterate through the store's data
+        for (let i = 0; i < p_strStoreData.getCount(); i++) {
+            const LItemObj = p_strStoreData.getAt(i);
+
+            if (!LItemObj) {
+                TS.App.Feedback.ShowErrMsg("Cannot Generate JSON");
+                return;
+            }
+            // Extract field type and data
+            const LCurrentMode = LItemObj.get('fieldType');
+            let LCurrentData = LItemObj.get('extractedData');
+
+            // Validate the first item
+            if (isFirstItem && LCurrentMode !== 'name') {
+                TS.App.Feedback.ShowErrMsg("First item must have dataField 'Name'");
+                return;
+            }
+            // Concatenate description or push the current object
+            if (LCurrentMode === 'desc') {
+                LCurrentObject.description = (LCurrentObject.description || '') + LCurrentData + ' ';
+            } else {
+                LCurrentData = gtsCommonUtils().RemoveTagsFromNameField(LCurrentData);
+                if (LCurrentData === null) continue
+                isFirstItem = false;
+                if (Object.keys(LCurrentObject).length !== 0) {
+                    LJsonObjectsArr.push(LCurrentObject);
+                }
+                LCurrentObject = { text: LCurrentData };  
+            }
+        }
+        // Push the last object
+        if (Object.keys(LCurrentObject).length !== 0) {
+            LJsonObjectsArr.push(LCurrentObject);
+        }
+        console.log(LJsonObjectsArr)
+        return LJsonObjectsArr;
+    },
+
+    /**
+     * Handles the click event on the "Cancel" button.
+     * Displays a confirmation dialog and removes the window containing the grid if confirmed.
+     */
+    HandleOnCancelJsonClk: function () {
+        const LMe = this;
+        Ext.Msg.show({
+            title: 'Cancel',
+            message: 'Do you want to cancel Editing?',
+            buttons: Ext.Msg.YESNO,
+            icon: Ext.Msg.QUESTION,
+            fn: function (btn) {
+                if (btn === 'yes') {
+                    LMe.pvtRemoveWindowContainingGrid();
+                }
+            }
+        });
+    },
+
+    /**
+     * Removes the window containing the grid.
+     */
+    pvtRemoveWindowContainingGrid: function () {
+
+        // Get reference to the display window and close it
+        let view = Ext.getCmp('idDisplayWindow')
+        view.close()
+        return;
+    },
+
+    /**
+    * Sets the default value for the combo box after it's rendered.
+    * @param {Object} p_objCombobox The combo box component.
+    */
+    HandleOnAfterRenderingSelectDefault: function (p_objCombobox) {
+
+        // Set default value for the combo box after rendering
+        setTimeout(() => {
+            var LDefaultValue = p_objCombobox.defaultValue;
+            p_objCombobox.setValue(LDefaultValue);
+        }, 0);
+    },
+
+    /**
+    * Handles the selection of field type in the combo box.
+    * Updates the selected record's field type in the grid.
+    * @param {Object} p_objCombo The combo box component.
+    * @param {Object} p_arrRecord The selected record.
+    */
+    HandleOnSelectingFieldType: function (p_objCombo, p_arrRecord) {
+        let LMainGrid = Ext.getCmp('idFieldTypeGridView');
+
+        // Check if main grid exists
+        if (LMainGrid) {
+            // Get selection model and store
+            const LSelectionModel = LMainGrid.getSelectionModel();
+            if (!LSelectionModel) { return }
+
+
+            const LGetStore = LMainGrid.getStore();
+            if (!LGetStore) return
+
+            // Get index of the selected record and update field type
+            const LRecordIndex = LGetStore.indexOf(p_objCombo.getWidgetRecord());
+
+            LSelectionModel.select(LRecordIndex);
+            const LSelectedRecord = LSelectionModel.getSelection()[0];
+            if (!LSelectedRecord) return
+
+            LSelectedRecord.set('fieldType', p_arrRecord.get('id'));
+             
+        } else {
+
+            TS.App.Feedback.ShowErrMsg('Main grid not found.')
+        }
+    }
+})
+
+
+/*******************************************************************/*******************************************************************/*******************************************************************/*******************************************************************
+
+
+  filters: [
+    function(item) {
+        LCurrentData = gtsCommonUtils().RemoveTagsFromNameField(item.get('extractedData')); 
+        return LCurrentData !== null;
+    }
+],
+
+/*******************************************************************/*******************************************************************/*******************************************************************/*******************************************************************
+
+/**
+ * Represents a custom window for displaying a grid structure.
+ * This window is used for displaying extracted data from the clipboard.
+ * It allows the user to view and manipulate the data.
+ * @public
+ * @config : {copiedData}
+ * 
+ */
+Ext.define('TS.view.editing.classes.tsdlgGridContainerWindow', {
+    extend: 'Ext.window.Window',
+    alias: 'view.gridwindow',
+ 
+    // config: {
+    //     copiedData: ""
+    // },
+ 
+    controller: 'pasteEnhancementcontroller',
+
+    maximizable: true,
+    cls: 'tsGrdPasteWinCls',
+
+    constructor: function () {
+        this.callParent(arguments); // Call the parent constructor  
+
+        // gets the already stored data from the localstorage 
+        let LStoredWindowSize = TS.App.UserSettings().GetUserSettings('windowSize');
+        if(LStoredWindowSize){
+
+            // let windowSize = Ext.JSON.decode()
+            // if (windowSize) {
+                this.setSize(LStoredWindowSize.width, LStoredWindowSize.height);
+            // }
+            // Listen for window resize event to store the size
+        }
+        this.on('resize', this.pvtOnWindowResize, this);
+
+        //Start Extraction of the data from copied text
+        this.ExtractDataFromClipboard();
+    },
+
+    /**
+     * @private
+     * Event handler for window resize.
+     * Stores the window size in localStorage.
+     * @param {Ext.window.Window} window - The window being resized.
+     * @param {Number} width - The new width of the window.
+     * @param {Number} height - The new height of the window.
+     */
+    pvtOnWindowResize: function (window, width, height) {
+        // Store window size in localStorage
+        TS.App.UserSettings().SetUserSettings('windowSize',{width: width, height: height }) 
+    },
+
+    /**
+     * @public
+    * Extracts data from the clipboard by calling utility method for splitting data and updates the grid store.
+    */
+    ExtractDataFromClipboard:async function () {
+        let LMe = this; 
+        let LRawData = await this.pvtGetClipboardText(); // Access copiedData using getConfig method  
+        if(!LRawData){ return}
+
+        let LSplitters = ["paragraph","bullet","newline"];
+        let LExtractedDataArr = gtsCommonUtils().SplitDataUsingInputFormatters(LRawData, LSplitters);
+
+        let LStoreData = LMe.pvtGetDataForStore(LExtractedDataArr);
+
+        this.pvtUpdateStoreData(LStoreData);
+    },
+
+    pvtGetClipboardText: async function (callback) {
+        try {
+            const items = await navigator.clipboard.read();
+            if (items[0].types.includes("text/html")) {
+                const blob = await items[0].getType("text/html");
+                if (blob) {
+                    const text = await blob.text();
+                    
+                    return text;
+                }
+            } else if (items[0].types.includes("text/plain")) {
+                const blob = await items[0].getType("text/plain");
+                if (blob) {
+                    const text = await blob.text();
+                    // console.log(text); // Return text/html if found
+                    return text
+                }
+            }
+        } catch (error) {
+            console.error('Error reading clipboard:', error);
+            callback(null); // Error handling
+        }
+    },
+
+    /**
+     * Retrieves data for the grid store.
+     * @private
+     * @param {Array} p_arrData - The array of data to be loaded into the store.
+     * @returns {Array} The formatted data for the grid store.
+     */
+    pvtGetDataForStore: function (p_arrData) {
+        return p_arrData.map(item => ({ fieldType: 'name', extractedData: item }));
+    },
+
+    /**
+     * @private
+     * Updates the grid store with new data.
+     * @param {Array} p_arrData - The data to update the store with.
+     */
+    pvtUpdateStoreData: function (p_arrData) {
+        var LCurrentStore = Ext.getStore('idPastingDataGrid');
+        if (LCurrentStore) {
+            LCurrentStore.removeAll();
+            LCurrentStore.loadData(p_arrData);
+        } else {
+            TS.App.Feedback.ShowErrMsg("Store not found");
+        } 
+    },
+
+
+    //UI for the window Pop Up
+
+    id: 'idDisplayWindow',
+    modal: true,
+    shadow: false,
+    scrollable: true,
+
+    width: 800,
+    height: 700,
+    minHeight: 300,
+    minWidth: 500,
+ 
+    margin: '10 0 0 0',
+    padding: '20 30 25 30',
+
+    layout: {
+        type: 'vbox',
+        align: 'stretch'
+    },
+
+
+    items: [{
+        //Label
+        xtype: 'label',
+        text: 'Select Field Types for Copied Data',
+        cls: 'tsHeadAttrCustom', 
+        style: "margin-bottom: 15px;",
+    }, {
+        // Main Grid
+        xtype: 'gridstructure',
+        store: {
+            type: 'pastingDataGrid'
+        }, 
+        style: 'border: 1px solid rgb(213, 213, 213);',
+        flex: 1
+    }, {
+        // container containing Buttons
+        xtype: 'container',
+        layout: {
+            type: 'hbox',
+            align: 'middle',
+            pack: 'end'
+        },
+        defaults: {
+            minWidth: 65,
+            width: 80,
+            padding: '5 5 5 5',
+        },
+        items: [{
+            xtype: 'button',
+            text: 'Load Data',
+            tooltip: 'Add the Data into display area',
+            style: "margin: 15px 10px 0 0;",
+            handler: 'HandleOnGenerateJsonClick'
+        },  {
+            xtype: 'button',
+            text: 'Cancel',
+            tooltip: 'Remove the Grid',
+            cls: 'tsBlueOutlineBtn',
+            style: "margin: 15px 3px 0 10px;",
+            handler: 'HandleOnCancelJsonClk'
+        }]
+    }],
+ 
+});
+/*******************************************************************/*******************************************************************/*******************************************************************/*******************************************************************/*******************************************************************
+pvtHandleOnPasteClick: function () {
+    const LMe = this;
+    //extract the data from clipboard and generate the window
+    // navigator.clipboard.readText().then(clipText => {
+      LMe.LGridWindow = Ext.create('TS.view.editing.classes.tsdlgGridContainerWindow'
+      // , {
+      //   copiedData: clipText
+      // }
+      );
+      LMe.LGridWindow.show(); 
+      // LMe.LGridWindow.StartDataExtraction();
+      LMe.mon(LMe.LGridWindow, 'jsonGenerated', function (generatedJsonData) {
+        LMe.pvtAddCopiedRecordInGrid(generatedJsonData)
+      })
+    // });
+  }, 
