@@ -6,7 +6,12 @@ Ext.define('ExtractApp.store.DataStore', {
     storeId: 'dataStore',
 
     data: [],
-
+ // filters: [
+    //     function(item) {
+    //         LCurrentData = clsHeaderUtils.RemoveTagsFromNameField(item.get('extractedData')); 
+    //         return LCurrentData !== null;
+    //     }
+    // ],
 
     proxy: {
         type: 'memory',
