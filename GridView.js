@@ -8,10 +8,10 @@
  */
 Ext.define('ExtractApp.view.main.GridView', {
     extend: 'Ext.panel.Panel',
-    xtype: 'app-gridView',
     alias: 'view.gridView',
-    id: 'id-gridview',
-    reference: 'id-gridview',
+
+    reference: 'refGridView',
+
     autoscroll: true,
     maxWidth: 800,
     frame: true,
@@ -20,11 +20,12 @@ Ext.define('ExtractApp.view.main.GridView', {
     margin: "10 0 0 0",
     padding: '25 25 25 25',
 
-    items: [{
-        id: 'gridView',
+    items: [{ 
+        reference: 'gridView',
         xtype: 'mainlist',
         height: 450,
         autoscroll: true,
+        loadMask: true,
     },
     {
         layout: {
@@ -32,19 +33,22 @@ Ext.define('ExtractApp.view.main.GridView', {
             align: 'middle',
             pack: 'start'
         },
-        margin: '25 0 0 0',
+        margin: '10 0 0 0',
         items: [{
             xtype: 'button',
-            id: 'cancel-btn',
-            text: 'Cancel',
+             text: 'Cancel',
             tooltip: 'Remove the Grid',
             handler: 'CancelJsonGeneration',
         }, {
             xtype: 'button',
-            id: 'genBtn',
-            text: 'Generate JSON',
+             text: 'Generate JSON',
             tooltip: 'Generate and View JSON Data',
-            handler: 'GenerateJsonHandle',
+            handler: 'HandleOnGenerateJsonClick',
+        }, {
+            xtype: 'button',
+            text: 'Paste Again',
+            tooltip: 'Generate and View JSON Data',
+            handler: 'HandleOnPasteAgainBtnClick',
         }]
     },
     ]
