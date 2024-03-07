@@ -30,11 +30,12 @@ Ext.define('ExtractApp.view.main.Utility.GenUtils', {
                 TABLE_PARAM: "table",
             };
 
-
-            if (this.pvtIsCopiedDataFromSpreadSheet(p_strData)) {
+            if (this.pvtIsCopiedDataFromSpreadSheet(LFinalResult)) {
                 console.log("Copied from excel")
                 LFinalResult = LMe.pvtExtractTableData(LFinalResult);
-                return LFinalResult
+                let LControllerReference = Ext.create('ExtractApp.view.main.MainController');
+                LControllerReference.pvtGenerateGrid(LFinalResult);
+                return null
             }
 
             // LFinalResult = LMe.pvtRemoveSelectedTag(LFinalResult, /<[^>]*>|<\/>|&nbsp;/g)
@@ -86,19 +87,23 @@ Ext.define('ExtractApp.view.main.Utility.GenUtils', {
             return LFinalResult.filter(str => str.trim() !== '').map(LFormattedString => LFormattedString.trim());
         },
         pvtIsCopiedDataFromSpreadSheet: function (p_strData) {
+            let LMe = this;
             // Define patterns to match typical spreadsheet data characteristics
             const spreadsheetPatterns = [
-                /<google-sheets-html-origin\b[^>]*>[\s\S]*?<\/google-sheets-html-origin>/gi,
-                /<colgroup\b[^>]*>[\s\S]*?<\/colgroup>/gi,
+                /<google-sheets-html-origin\b[^>]*>|<\/google-sheets-html-origin>/gi, 
             ];
 
             // Check if any pattern matches the data
             for (const pattern of spreadsheetPatterns) {
-                if (pattern.test(p_strData)) {
-                    return true; // Return true if any pattern matches
-                }
+                p_strData = LMe.pvtRemoveSelectedTag(p_strData,pattern);
+                // if (pattern.test(p_strData)) {
+                //     return true; // Return true if any pattern matches
+                // }
             }
-            return false; // Return false if no pattern matches
+
+            let TotalArr = LMe.pvtSplitDataByTag(p_strData,/<table[^>]*>(?:\s|\S)*?<\/table>/gi)
+            if(!TotalArr)return false;
+            return TotalArr.length === 1; // Return false if no pattern matches
         },
 
         pvtGetTotalColumnCount: function (p_arrTableData) {
@@ -118,31 +123,31 @@ Ext.define('ExtractApp.view.main.Utility.GenUtils', {
             return LColumnsDataArr.length;
 
         },
-        pvtGetTableHeaders : function(p_arrTableData) {
+        pvtGetTableHeaders: function (p_arrTableData) {
             const regex = /<tr[^>]*>[\s\S]*?<\/tr>/ig;
             const LMe = this;
             let trData = p_arrTableData[0].match(regex);
             if (trData <= 0) return;
             let LHeadersRow = LMe.pvtRemoveSelectedTag([trData[0]], /<[^>]*>|<\/>|&nbsp;|[\r\n\t]|<br[^>]*>/g);
-            if(LHeadersRow.length == 0){console.error("Select proper Data");return;} 
-            return LHeadersRow.map( p_strHeading => p_strHeading.toLowerCase());
+            if (LHeadersRow.length == 0) { console.error("Select proper Data"); return; }
+            return LHeadersRow.map(p_strHeading => p_strHeading.toLowerCase());
         },
 
         pvtExtractTableData(p_arrData) {
             let LMe = this;
-            if(!p_arrData){
+            if (!p_arrData) {
                 console.error("No data to extract");
                 return;
             }
 
             let LTotalNumberOfColumns = LMe.pvtGetTotalColumnCount(p_arrData);
-            if(LTotalNumberOfColumns <=0)return;
+            if (LTotalNumberOfColumns <= 0) return;
             console.log("total col : ", LTotalNumberOfColumns);
-            
+
             let LHeaderOfTableArr = LMe.pvtGetTableHeaders(p_arrData);
-            if(LHeaderOfTableArr.length <0)return;
+            if (LHeaderOfTableArr.length < 0) return;
             console.log("header of table : ", LHeaderOfTableArr);
-            
+
             const LRegexForTrData = /<tr[^>]*>[\s\S]*?<\/tr>/g;
 
             let trData = p_arrData[0].match(LRegexForTrData);
@@ -183,34 +188,33 @@ Ext.define('ExtractApp.view.main.Utility.GenUtils', {
 
             let LFormattedObjectForStoreArr = [];
             let flag = true;
-            for (let i = 0; i < trData.length; i++) { 
-                    if(LHeaderOfTableArr[i % LTotalNumberOfColumns].startsWith("desc")){
-                        flag = false
-                    }
-                    LFormattedObjectForStoreArr.push({ fieldType: flag ? 'name' : 'desc', extractedData: trData[i] });
-                    flag = true;
-                    // LFormattedObjectForStoreArr.push({ fieldType: flag ? 'name' : 'desc', extractedData: trData[i] });
-                 
+            for (let i = 0; i < trData.length; i++) {
+                if (LHeaderOfTableArr[i % LTotalNumberOfColumns].startsWith("desc")) {
+                    flag = false
+                }
+                LFormattedObjectForStoreArr.push({ fieldType: flag ? 'name' : 'desc', extractedData: trData[i] });
+                flag = true;
             }
             console.log('LFormattedObjectForStoreArr', LFormattedObjectForStoreArr)
-            return p_arrData;
+
+            return LFormattedObjectForStoreArr;
         },
 
         //  extractTextFromTd: function(tdString) {
         //     // Remove everything beyond the closing </td> tag.
         //     const cleanedString = tdString.replace(/(.*?)<td>/ig, "");
-          
+
         //     // Remove leading and trailing whitespace.
         //     const trimmedString = cleanedString.trim();
-          
+
         //     // Remove any remaining HTML tags using a regular expression.
         //     const text = trimmedString.replace(/<[^>]+>/g, "");
-          
+
         //     return text;
         //   },
 
         RemoveTagsFromNameField: function (p_strData) {
-            let LGeneratedArr = this.SplitDataUsingInputFormatters(p_strData, ["html"]);
+            let LGeneratedArr =  this.pvtRemoveSelectedTag([p_strData], /<[^>]*>|<\/>|&nbsp;/g)
             return LGeneratedArr.join(" ").trim() || null;
         },
 
@@ -262,9 +266,8 @@ Ext.define('ExtractApp.view.main.Utility.GenUtils', {
             });
         },
 
-        pvtRemoveSelectedTag: function (p_arrData, p_regTag,p_boolNeedToFilterEmptyString) {
-            return p_arrData.flatMap(str => !p_boolNeedToFilterEmptyString ? str.split(p_regTag).filter(Boolean) : str.split(p_regTag));
-            // return p_arrData.flatMap(str => str.split(p_regTag).filter(Boolean));
+        pvtRemoveSelectedTag: function (p_arrData, p_regTag) { 
+            return p_arrData.flatMap(str => str.split(p_regTag).filter(Boolean));
         },
 
         /**
