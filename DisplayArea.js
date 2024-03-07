@@ -7,11 +7,9 @@
  */
 Ext.define('ExtractApp.view.main.DisplayArea', {
     extend: 'Ext.panel.Panel',
-    xtype: 'app-displayArea',
     alias: 'view.displayArea',
 
-    id: 'id-display-content',
-    reference: 'id-display-content',
+    reference: 'refDisplayArea',
     maxWidth: '100%',
     items: [
         {
@@ -26,20 +24,26 @@ Ext.define('ExtractApp.view.main.DisplayArea', {
                 height: 550,
                 scrollable: true,
                 flex: 1,
-                maxWidth: 800
+                maxWidth: 800,
             },
             items: [{
                 title: 'Formatted Data',
+                cls: 'panel-with-scroll',
                 bind: { html: '{getFormattedOutputFromJson}' },
-                margin: '0 30 20 0'
+                margin: '0 30 20 0',
+                scrollable: {
+                    x: false
+                },
+
+                border: true,
             },
             {
                 title: 'JSON Data',
                 layout: 'fit',
                 items: [{
                     xtype: 'textareafield',
-                    cls: 'textarea-readonly-cls',
-                    bind: '{JData}',
+                    cls: 'clsTextareaReadonly',
+                    bind: '{jData}',
                     editable: false,
                 }],
                 margin: '0 0 20 30'
@@ -52,11 +56,11 @@ Ext.define('ExtractApp.view.main.DisplayArea', {
             },
             items: [{
                 xtype: 'button',
-                id: 'reset-btn',
+                id: 'idResetBtn',
                 text: 'Reset',
-                handler: 'ResetView',
                 tooltip: 'Remove and Delete JSON Data',
-                margin: '20 0 20 15'
+                margin: '20 0 20 15',
+                handler: 'ResetView',
             }]
         }
     ]
