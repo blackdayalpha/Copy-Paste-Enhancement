@@ -6,16 +6,13 @@
 Ext.define('ExtractApp.view.main.Main', {
     extend: 'Ext.panel.Panel',
     xtype: 'app-main',
-    id: 'mainView',
 
-    reference: 'copyController',
     requires: [
         'Ext.plugin.Viewport',
 
         'ExtractApp.view.main.MainController',
         'ExtractApp.view.main.MainModel',
-    ],
-
+    ], 
     controller: 'main',
     viewModel: 'main',
     scrollable: true,
@@ -29,17 +26,36 @@ Ext.define('ExtractApp.view.main.Main', {
             xtype: 'button',
             text: 'Paste Here',
             margin: '20 0 20 10 ',
+            id :'pasteBtn',
             iconCls: 'fas fa-paste',
-            handler: 'GetPastedCode',
             tooltip: 'Click Here to Paste Selected Content',
+            handler: 'HandleOnClickingPasteBtn',
+            listerners : {
+                paste : function(event){
+                    console.log(event.clipboardData);
+                }
+            }
         }, {
             xtype: 'panel',
-            id: 'show-container',
-            reference: 'show-container',
+            id:"idParentContainer",
+            reference: 'refParentContainer',
             items: []
         }
         ],
     },
 
-    ]
+    ],
+    listeners: {
+        // afterrender: function () {
+        //     document.addEventListener('paste', function(event) {
+        //         event.isTrusted = true;
+        //         var clipboardData = event.clipboardData || window.clipboardData;
+        //         var pastedText = clipboardData.getData('text/html');
+        //         debugger;
+        //         console.log(pastedText)  
+        //     });
+        // }
+    }
+
+
 });
