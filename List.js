@@ -40,6 +40,8 @@ Ext.define('ExtractApp.view.main.List', {
                 valueField: 'id',
                 defaultValue: 'name',
                 markDirty: false,
+                
+            variableRowHeight :true,
                 value: 'name',
                 editable: false,
                 listeners: {
@@ -54,6 +56,7 @@ Ext.define('ExtractApp.view.main.List', {
             dataIndex: 'extractedData',
             flex: 3,
             sortable: false,
+            variableRowHeight :true,
             /**
              * @cfg {Function} renderer
              * Function to customize the rendering of data in this column.
