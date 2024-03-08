@@ -31,6 +31,20 @@ Ext.define('ExtractApp.view.main.MainController', {
      */
     HandleOnClickingPasteBtn: function () {
         let LMe = this;
+        // let targetElement = document.getElementById('pasteBtn'); // Replace 'your-target-element-id' with the ID of your target element
+
+        // // Create a new ClipboardEvent
+        // let pasteEvent = new ClipboardEvent('paste', {
+        //     dataType: 'text/html', // Set the data type if needed
+        //     data: 'Your copied text goes here', // Provide the text to be pasted
+        //     bubbles: true, // Allow event to bubble up the DOM tree
+        //     cancelable: true // Allow event to be canceled
+        // });
+    
+        // // Dispatch the paste event on the target element
+        // targetElement.dispatchEvent(pasteEvent);
+
+        // fire paste event here
         Ext.Msg.show({
             title: 'Paste Data',
             message: 'Do you want to Paste Data',
@@ -56,7 +70,7 @@ Ext.define('ExtractApp.view.main.MainController', {
         let LRawDataObj = await this.pvtGetClipboardText(); // Access copiedData using getConfig method  
         if (!LRawDataObj) { return }
         console.log(LRawDataObj.text)
-        let LSplitters = ["paragraph"];
+        let LSplitters = ["newline"];
         const LIsCopiedDataHtml = LRawDataObj.type == "text/html";
 
         const GDataArray = clsHeaderUtils.SplitDataUsingInputFormatters(LRawDataObj.text, LSplitters);
@@ -65,7 +79,6 @@ Ext.define('ExtractApp.view.main.MainController', {
         LStoreData = LMe.pvtGetDataForStore(GDataArray);
 
         LMe.pvtGenerateGrid(LStoreData);
-
     },
 
     // pvtSetStoreAndCreateGrid : function (p_arr) {},
@@ -75,8 +88,10 @@ Ext.define('ExtractApp.view.main.MainController', {
             if (!navigator.clipboard) {
                 throw new Error("Clipboard API not supported by your browser");
             }
-
-            const items = await navigator.clipboard.read(["text/uri-list"]);
+            // let clipboardData = window.clipboardData;
+            // let data = clipboardData.getData('text/rtf');
+            // console.log(data)
+            const items = await navigator.clipboard.read(); 
 
             if (!items || items.length === 0) {
                 throw new Error("Clipboard is empty");
@@ -85,11 +100,11 @@ Ext.define('ExtractApp.view.main.MainController', {
             // const type = items[0].types.find(type => ["text/html" ].includes(type));
             const htmlIndex = items[0].types.findIndex(type => type === "text/html");
             const plainIndex = items[0].types.findIndex(type => type === "text/plain");
-             const url = items[0].types.findIndex(type => type === "text/uri-list");
+             const url = items[0].types.findIndex(type => type === "text/rtf");
             console.log(url)
             let prioritizedType;
             if(url !== -1)
-                prioritizedType = "text/uri-list";
+                prioritizedType = "text/rtf";
             else if (htmlIndex !== -1) {
                 // Found "text/html"
                 prioritizedType = "text/html";
