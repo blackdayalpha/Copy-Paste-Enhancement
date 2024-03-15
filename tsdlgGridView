@@ -1,0 +1,67 @@
+Ext.define('TS.view.editing.classes.tsdlgGridView', {
+    extend: 'Ext.grid.Panel',
+    alias: 'widget.gridstructure',
+
+    margin: '0 0 10 0',
+    border: true,
+    height: 400,
+    cls: 'tsGridStructureForSelection',
+    loadMask: true,
+    controller: 'pasteEnhancementcontroller',
+    reference: 'refCopiedGridPanel',
+    id: 'idFieldTypeGridView',
+    emptyText: 'No Data to Display',
+    emptyCls: 'empty-text',
+    bodyBorder: false,
+    border: false,
+    style: 'border: 1px solid rgb(213, 213, 213);',
+    scrollable: {
+        y: true,
+        x: false
+    },
+    viewconfig: {
+        markDirty : false
+    },
+    columns: [
+        {
+            text: 'Field Name',
+            xtype: 'widgetcolumn',
+            dataIndex: 'fieldType',
+            markDirty: false,
+            minWidth: 150,
+            widget: {
+                xtype: 'combo',
+                store: {
+                    fields: ['option', 'id'],
+                    data: [
+                        { option: 'Name', id: 'name' },
+                        { option: 'Description', id: 'desc' },
+                        { option: 'Skip Row', id: 'idSkipRow' }
+                    ],
+                },
+                displayField: 'option',
+                valueField: 'id',
+                defaultValue: 'name',
+                value: 'name',
+                editable: false,
+                variableRowHeight: true,
+                listeners: {
+                    // beforerender: 'HandleOnAfterRenderingSelectDefault',
+                    select: 'HandleOnSelectingFieldType'
+                },
+            },
+            flex: 1,
+        },
+        {
+            text: 'Data',
+            dataIndex: 'extractedData',
+            flex: 3,
+            sortable: false,
+            variableRowHeight: true,
+            renderer: function (value, metaData) {
+                metaData.tdAttr = 'data-qtip="' + Ext.util.Format.htmlEncode(value) + '"';
+                return value;
+            },
+        }
+    ],
+})
