@@ -1,5 +1,6 @@
 Ext.define('TS.view.forms.reusable.tsclsClipboardReader', {
-    extend: 'Ext.container.Container',
+    extend: 'Ext.container.Container', 
+    // extend: 'TS.view.classes.app.tsclsBase', 
     alias: 'view.tsclsClipboardReader',
     controller: 'tsclsClipboardReadercontroller',
 
@@ -13,30 +14,41 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReader', {
     constructor: function () {
         let LMe = this;
         LMe.callParent(arguments);
-        LMe.getController().InitObject();
+        LMe.LController = LMe.getController();
     },
 
-
+    /**
+    * Retrieves data and displays it.
+    */
     GetData: function () {
         let LMe = this;
-        LMe.LWindow = LMe.GetWindow();
-        LMe.LWindow.show();
+        LMe.FWindow = LMe.pvtGetWindow();
+        LMe.LController.InitObject();
+        LMe.FWindow.show();
 
-        LMe.getController().ExtractDataFromClipboard(LMe.getSplitDataBy());
+        LMe.LController.ExtractDataFromClipboard(LMe.getSplitDataBy());
     },
 
-    GetWindow: function () {
+
+    /**
+    * Retrieves or creates the window containing the data grid.
+    * @returns {Ext.window.Window} The window containing the data grid.
+    */
+    pvtGetWindow: function () {
         let LMe = this;
-        if (LMe.LWindow) {
-            return LMe.LWindow;
+        if (LMe.FWindow) {
+            return LMe.FWindow;
         }
-        if (!LMe.Grid) {
-            LMe.LGrid = LMe.GetGrid();
+        if (!LMe.FGrid) {
+            LMe.FGrid = LMe.pvtGetGrid();
         }
 
-        LMe.LWindow = Ext.create("Ext.window.Window", {
-            id: 'idDisplayWindow',
-            reference: 'refGridDisplayWindow',
+        LMe.FWindow = Ext.create("Ext.window.Window", {
+            // id: 'idDisplayWindow',
+            // reference: 'refGridDisplayWindow',
+
+            maximizable: true,
+            cls: 'tsGrdPasteWinCls',
             modal: true,
             shadow: false,
             scrollable: true,
@@ -61,17 +73,17 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReader', {
                     cls: 'tsHeadAttrCustom',
                     style: "margin-bottom: 15px;",
                 },
-                // LMe.LGrid
-                // , 
-                {
-                    // Main Grid
-                    xtype: 'gridstructure',
-                    store: {
-                        type: 'pastingDataGrid'
-                    },
-                    style: 'border: 1px solid rgb(213, 213, 213);',
-                    flex: 1
-                },
+                LMe.FGrid
+                ,
+                // {
+                //     // Main Grid
+                //     xtype: 'gridstructure',
+                //     store: {
+                //         type: 'pastingDataGrid'
+                //     },
+                //     style: 'border: 1px solid rgb(213, 213, 213);',
+                //     flex: 1
+                // },
                 {
                     xtype: 'container',
                     layout: {
@@ -90,7 +102,7 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReader', {
                         tooltip: 'Add the Data into display area',
                         style: "margin: 15px 10px 0 0;",
                         handler: function () {
-                            LMe.getController().HandleOnGenerateJsonClick()
+                            LMe.LController.HandleOnGenerateJsonClick()
                         },
                     }, {
                         xtype: 'button',
@@ -99,9 +111,8 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReader', {
                         style: "margin: 15px 10px 0 0;",
                         width: 100,
                         handler: function () {
-                            LMe.getController().HandleOnPasteAgainBtnClick()
+                            LMe.LController.HandleOnPasteAgainBtnClick()
                         },
-
                     }, {
                         xtype: 'button',
                         text: 'Cancel',
@@ -109,41 +120,51 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReader', {
                         cls: 'tsBlueOutlineBtn',
                         style: "margin: 15px 3px 0 10px;",
                         handler: function () {
-                            LMe.getController().HandleOnCancelJsonClk()
+                            LMe.LController.HandleOnCancelJsonClk()
                         },
                     }]
                 }],
-            listeners: {
-                beforeclose: function () {
-                    let LMe = this;
-                    let GridView = LMe.lookupReference('refCopiedGridPanel');
-                    if (Ext.isEmpty(GridView) === false) {
-                        Ext.destroy(GridView);
-                    }
-                }
-            }
+            // listeners: {
+            // beforeclose: function () {
+            // //     let LMe = this;
+            // //     let GridView = LMe.lookupReference('refCopiedGridPanel');
+
+            //         if (Ext.isEmpty(LMe.FGrid) === false) {
+            //             Ext.destroy(LMe.FGrid);
+            //         }
+            //     }
+            // }
         })
-        return LMe.LWindow;
+        return LMe.FWindow;
     },
 
-
-    GetGrid: function () {
+    /**
+    * Retrieves or creates the data grid.
+    * @returns {Ext.grid.Panel} The data grid.
+    */
+    pvtGetGrid: function () {
         let LMe = this;
-        if (LMe.LGrid) {
-            return LMe.LGrid;
+        if (LMe.FGrid) {
+            return LMe.FGrid;
         }
 
-        LMe.LGrid = Ext.create("Ext.grid.Panel", {
-            // store: {
-            //     type: 'pastingDataGrid'
-            // },
+        LMe.FGrid = Ext.create("Ext.grid.Panel", {
+            store: {
+                type: 'pastingDataGrid'
+            },
             alias: 'widget.gridstructure',
             margin: '0 0 10 0',
             border: true,
             height: 400,
+
+            style: 'border: 1px solid rgb(213, 213, 213);',
+            flex: 1,
+
+            markDirty: false,
+
             cls: 'tsGridStructureForSelection',
             loadMask: true,
-            reference: 'refCopiedGridPanel',
+            // // reference: 'refCopiedGridPanel',
             // id: 'idFieldTypeGridView',
             emptyText: 'No Data to Display',
             emptyCls: 'empty-text',
@@ -153,9 +174,6 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReader', {
             scrollable: {
                 y: true,
                 x: false
-            },
-            viewconfig: {
-                markDirty: false
             },
             columns: [
                 {
@@ -178,13 +196,14 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReader', {
                         valueField: 'id',
                         defaultValue: 'name',
                         value: 'name',
+
                         editable: false,
                         variableRowHeight: true,
                         listeners: {
                             // beforerender: 'HandleOnAfterRenderingSelectDefault',
                             select: {
                                 fn: 'HandleOnSelectingFieldType',
-                                scope: LMe.getController()
+                                scope: LMe.LController
                             }
                         },
                     },
@@ -202,8 +221,26 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReader', {
                     },
                 }
             ],
-        })
+        });
 
-        return LMe.LGrid;
+        return LMe.FGrid;
     },
+
+    /**
+     * Destructor function to clean up resources.
+     */
+    listeners: {
+        beforedestroy: function () {
+            let LMe = this;
+            if (Ext.isEmpty(LMe.FGrid) === false) {
+                Ext.destroy(LMe.FGrid);
+            }
+            if (Ext.isEmpty(LMe.FWindow) === false) {
+                Ext.destroy(LMe.FWindow);
+            }
+            if (Ext.isEmpty(LMe.LController) === false) {
+                Ext.destroy(LMe.LController);
+            }
+        }
+    }
 })
