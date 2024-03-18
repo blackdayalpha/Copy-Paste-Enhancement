@@ -1,12 +1,20 @@
+/**
+ * ExtJS controller class for the tsclsClipboardReader view.
+ */
 Ext.define('TS.view.forms.reusable.tsclsClipboardReaderController', {
     extend: 'Ext.app.ViewController',
     alias: 'controller.tsclsClipboardReadercontroller',
 
-
+    /**
+     * Initializes the controller by retrieving references to the window and grid components.
+     */
     InitObject: function () {
         let LMe = this;
-        LMe.FFieldTypeSelectionWindow = LMe.lookupReference("refGridDisplayWindow");
-        LMe.FFieldTypeSelectionGrid = LMe.lookupReference("refCopiedGridPanel")
+        LMe.FFieldTypeSelectionWindow = LMe.getView().FWindow;
+        LMe.FFieldTypeSelectionGrid = LMe.getView().FGrid;
+        if (!LMe.FFieldTypeSelectionWindow || !LMe.FFieldTypeSelectionGrid) {
+            LMe.pvtShowErrorAndDestroyWindow("Error while generating views to display grid. Please check for Errors!!");
+        }
     },
 
     /**
@@ -22,54 +30,46 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReaderController', {
         let LMe = this;
         let LDataFromClipboardObj;
 
-        let LFieldTypeSelectionGrid = Ext.getCmp('idFieldTypeGridView');
+        // let LFieldTypeSelectionGrid = Ext.getCmp('idFieldTypeGridView');
+        let LFieldTypeSelectionGrid = LMe.FFieldTypeSelectionGrid;
 
-        // **Optional loading indicator for field type selection grid:**
-        if (LFieldTypeSelectionGrid) {
-            LFieldTypeSelectionGrid.setLoading(true);
-        }
+        // **Optional loading indicator for field type selection grid:** 
+        LFieldTypeSelectionGrid.setLoading(true);
 
         try {
             LDataFromClipboardObj = await LMe.pvtGetClipboardText(); // Fetch data from clipboard  
         } catch (error) {
-            LMe.pvtShowErrorAndFallback(error);
+            LMe.pvtShowErrorAndDestroyWindow(error);
             return; // Exit if error occurs
         }
 
         // Validate retrieved data format
         if (!LDataFromClipboardObj || !LDataFromClipboardObj.hasOwnProperty("type") || !LDataFromClipboardObj.hasOwnProperty("text")) {
-            LMe.pvtShowErrorAndFallback("Error while Extracting Data");
+            LMe.pvtShowErrorAndDestroyWindow("Error while Extracting Data");
         }
 
 
 
         // Defer execution to ensure loading masks (if enabled) are displayed
         Ext.defer(function () {
-            if (LFieldTypeSelectionGrid) {
-                // LFieldTypeSelectionGrid.suspendLayouts(); // Suspend layout updates for efficiency
-            }
+            LFieldTypeSelectionGrid.suspendLayouts(); // Suspend layout updates for efficiency
 
-            // const LSplitterContraints = ["paragraph"];  // Adjust constraints as needed
             const LIsCopiedDataHtml = LDataFromClipboardObj.type === "text/html";
 
             let LExtractedDataArr = gtsCommonUtils().SplitDataUsingInputFormatters(LDataFromClipboardObj.text, p_arrSplitByContraints, LIsCopiedDataHtml);
 
-            // Handle case where data splitting fails
+            // Handle case where data splitting fails or if the data is table/excel
             if (!LExtractedDataArr) {
-                if (LFieldTypeSelectionGrid) {
-                    LFieldTypeSelectionGrid.setLoading(false);
-                }
+                LFieldTypeSelectionGrid.setLoading(false);
                 return;
             }
 
             let LDataForStore = LMe.pvtGetDataForStore(LExtractedDataArr); // Transform data for store
 
             LMe.pvtUpdateStoreData(LDataForStore); // Update the grid store with transformed data
-            console.log(LDataForStore)
-            if (LFieldTypeSelectionGrid) {
-                LFieldTypeSelectionGrid.setLoading(false); // Hide loading indicator
-                // LFieldTypeSelectionGrid.resumeLayouts(); // Resume layout updates
-            }
+            
+            LFieldTypeSelectionGrid.setLoading(false); // Hide loading indicator
+            LFieldTypeSelectionGrid.resumeLayouts(); // Resume layout updates
         }, 100); // Delay execution 
     },
 
@@ -161,6 +161,7 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReaderController', {
 
 
     /**
+     * @method HandleOnWindowResize
      * @private
      * @description Event handler for window resize.
      * @param {Ext.window.Window} window - The window being resized.
@@ -193,17 +194,20 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReaderController', {
         if (LCurrentStore) {
             LCurrentStore.removeAll();
             try {
-                console.log(LCurrentStore)
                 LCurrentStore.loadData(p_arrData);
             } catch (error) {
-                LMe.pvtShowErrorAndFallback(error);
+                LMe.pvtShowErrorAndDestroyWindow(error);
             }
         } else {
-            pvtShowErrorAndFallback("Store not found");
+            pvtShowErrorAndDestroyWindow("Store not found");
         }
     },
 
-    pvtShowErrorAndFallback: function (err) {
+    /**
+     * Displays an error message and destroys the window containing the grid.
+     * @param {string} err - The error message to display.
+     */
+    pvtShowErrorAndDestroyWindow: function (err) {
         LMe = this;
         LMe.pvtRemoveWindowContainingGrid();
         TS.App.Feedback.ShowErrMsg(err);
@@ -254,7 +258,7 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReaderController', {
         // let view = Ext.getCmp('idDisplayWindow')
         let LCurrentWindowView = LMe.getView();
         if (!LCurrentWindowView) {
-            LMe.pvtShowErrorAndFallback("Couldn't fire Event because no window reference found");
+            LMe.pvtShowErrorAndDestroyWindow("Couldn't fire Event because no window reference found");
         }
 
         LCurrentWindowView.fireEvent('jsonGenerated', LJsonGenerated);
@@ -339,14 +343,13 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReaderController', {
 
     /**
      * @private
-     * Removes the window containing the grid.
+     * destroy the container containing the window and grid.
      */
     pvtRemoveWindowContainingGrid: function () {
         // Get reference to the display window and close it 
         let LMe = this;
         let FSelectTypeWindow = LMe.getView();
-        FSelectTypeWindow.LWindow.close()
-        return;
+        FSelectTypeWindow.destroy();
     },
 
     /**
@@ -371,19 +374,20 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReaderController', {
      */
     HandleOnSelectingFieldType: function (p_objCombo, p_arrRecord) {
         let LMe = this;
-        let LMainGrid = Ext.getCmp('idFieldTypeGridView');
+        // let LMainGrid = Ext.getCmp('idFieldTypeGridView');
+        let LSelectionGridPanel = LMe.FFieldTypeSelectionGrid;
 
         // Check if main grid exists
-        if (LMainGrid) {
+        if (LSelectionGridPanel) {
             // Get selection model and store
-            const LSelectionModel = LMainGrid.getSelectionModel();
+            const LSelectionModel = LSelectionGridPanel.getSelectionModel();
             if (!LSelectionModel) { return }
 
-            const LGetStore = LMainGrid.getStore();
+            const LGetStore = LSelectionGridPanel.getStore();
             if (!LGetStore) return
 
             // Get index of the selected record and update field type
-            const LRecordIndex = LGetStore.indexOf(p_objCombo.getWidgetRecord());
+            let LRecordIndex = LGetStore.indexOf(p_objCombo.getWidgetRecord());
 
             LSelectionModel.select(LRecordIndex);
             const LSelectedRecord = LSelectionModel.getSelection()[0];
@@ -392,7 +396,7 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReaderController', {
             LSelectedRecord.set('fieldType', p_arrRecord.get('id'));
 
         } else {
-            LMe.pvtShowErrorAndFallback('Main grid not found.')
+            LMe.pvtShowErrorAndDestroyWindow('Main grid not found.')
         }
     }
 })
