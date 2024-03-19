@@ -244,3 +244,288 @@ Ext.define('TS.view.forms.reusable.tsclsClipboardReader', {
         }
     }
 })
+
+/*
+Ext.define('TS.view.forms.reusable.tsclsClipboardReader', {
+    // extend: 'Ext.container.Container', 
+    extend: 'TS.view.classes.app.tsclsBase',
+    alias: 'view.tsclsClipboardReader',
+    // controller: 'tsclsClipboardReadercontroller',
+
+    require: [
+        'TS.store.tsstrPastingGridData'
+    ],
+    config: {
+        breakBy: [],
+        outputType: "text/html"
+    },
+
+    constructor: function () {
+        let LMe = this;
+        LMe.callParent(arguments);
+    },
+
+    /**
+    * Retrieves data and displays it.
+    */
+    GetData: async function () {
+        let LMe = this;
+        const LDataStore = await LMe.pvtExtractDataFromClipboard(LMe.getBreakBy());
+        if (!LDataStore) {
+            TS.App.Feedback.ShowErrMsg("No data extracted from clipboard.");
+            return null;
+        }
+        return LDataStore;
+    },
+
+    pvtExtractDataFromClipboard: async function (p_arrSplitByContraints) {
+        let LMe = this;
+        try {
+            const { text, type } = await LMe.pvtGetClipboardText();
+
+            if (!text || !type) {
+                throw new Error("Failed to retrieve data from clipboard.");
+            }
+
+            const LIsCopiedDataHtml = type === "text/html";
+            let LExtractedDataArr = gtsCommonUtils().SplitDataUsingInputFormatters(text, p_arrSplitByContraints, LIsCopiedDataHtml);
+
+            if (!LExtractedDataArr || !LExtractedDataArr.data || !LExtractedDataArr.type) {
+                throw new Error("Failed to split data extracted from clipboard.");
+                // return null;
+            }
+
+            let LDataForStore;
+            if (LExtractedDataArr.type === 'unstructured') {
+                LDataForStore = LExtractedDataArr.data.map(LDataItem => ({ fieldType: 'name', extractedData: LDataItem }));
+            } else if (LExtractedDataArr.type === 'table') {
+                LDataForStore = this.pvtGetDataForTableStore(LExtractedDataArr.data, LExtractedDataArr.header);
+            } else {
+                throw new Error("Unsupported data type extracted from clipboard.");
+            }
+
+            return LMe.pvtGenerateStoreFromData(LDataForStore, LExtractedDataArr.header);
+        } catch (error) {
+            TS.App.Feedback.ShowErrMsg("Error processing extracted data:", error);
+            return null;
+        }
+    },
+
+    pvtGenerateStoreFromData: function (p_arrData, p_arrColumnHeadName) {
+        return Ext.create('Ext.data.Store', {
+            fields: p_arrColumnHeadName ? p_arrColumnHeadName : ['fieldType', 'extractedData'],
+            data: p_arrData,
+            filters: [
+                function (p_storeItem) {
+                    let LCurrentData = gtsCommonUtils().RemoveTagsFromNameField(p_storeItem.get('extractedData'));
+                    return LCurrentData !== null;
+                }
+            ]
+        });
+    },
+
+    pvtGetDataForTableStore: function (p_arrCellData, p_arrColumnHeadName) {
+        const LTotalNumberOfColumns = p_arrColumnHeadName.length;
+        const LFormattedDataForStore = [];
+
+        let LIsHeaderADescriptionArr = [];
+        for (let LIndex = 0; LIndex < p_arrColumnHeadName.length; LIndex++) {
+            let LHeaders = p_arrColumnHeadName[LIndex];
+
+            // Check if current element exists and has innerText property
+            if (!LHeaders) {
+                LIsHeaderADescriptionArr.push(false); // Push false for missing headers
+                continue; // Skip to next iteration
+            }
+
+            if (LHeaders.toLowerCase().includes("description")) {
+                LIsHeaderADescriptionArr.push(true);
+            } else {
+                LIsHeaderADescriptionArr.push(false);
+            }
+        }
+
+        for (let LIndex = 0; LIndex < p_arrCellData.length; LIndex++) {
+            LFormattedDataForStore.push({
+                header: p_arrColumnHeadName[LIndex % LTotalNumberOfColumns],
+                // fieldType: p_arrColumnHeadName[LIndex % LTotalNumberOfColumns],
+                extractedData: p_arrCellData[LIndex],
+                fieldType: LIsHeaderADescriptionArr[LIndex % LTotalNumberOfColumns] ? 'desc' : 'name'
+            });
+        }
+
+        return LFormattedDataForStore;
+    },
+
+    /**
+     * @private
+     * Asynchronously retrieves the text content from the clipboard.
+     * 
+     * @returns {Promise<string|null>} A promise that resolves with an object containing the retrieved text content and its type, 
+     *                                 or null if an error occurs.
+     *                                 
+     * @throws {Error} - If the Clipboard API is not supported by the browser.
+     *                - If the clipboard is empty.
+     *                - If no supported text format ("text/html" or "text/plain") is found in the clipboard.
+     *                - If an error occurs while retrieving the text data for the chosen type.
+     *                - If no text data is found in the clipboard.
+     */
+    pvtGetClipboardText: async function () {
+        let LMe = this;
+        if (!this.pvtIsBrowserCompatible()) { throw new Error("Browser is not compatible with functionality to read the clipboard. Please use another browser or try upgrading to latest version to read the clipboard") };
+
+        let LClipBoard = navigator.clipboard;
+
+        // Check if clipboard API is supported
+        if (!LClipBoard) {
+            throw new Error("Clipboard API not supported by your browser");
+        }
+
+        const LItemsExtractedFromClipboard = await LClipBoard.read();
+
+        if (!LItemsExtractedFromClipboard || LItemsExtractedFromClipboard.length === 0) {
+            throw new Error("Clipboard is empty");
+        }
+
+        let LUserChoosenMimeType = LMe.getOutputType();
+        if (!LUserChoosenMimeType.startsWith("text/")) {
+            throw new Error("Please select proper mime type. Inputed mime type not available");
+        }
+
+        // check if the user choose type available
+        const LIsUserChoosenMimeTypeAvaialable = LItemsExtractedFromClipboard[0].types.findIndex(type => type === LUserChoosenMimeType);
+        const LIsPlainTextTypeAvailable = LItemsExtractedFromClipboard[0].types.findIndex(type => type === "text/plain");
+
+        let LSelectedDataType;
+        if (LIsUserChoosenMimeTypeAvaialable !== -1) {
+            // Found user chosen mime type
+            LSelectedDataType = LMe.getOutputType();
+        } else if (LIsPlainTextTypeAvailable !== -1) {
+            // Fallback to "text/plain"
+            LSelectedDataType = "text/plain";
+        } else {
+            throw new Error("No supported text format found in the clipboard");
+        }
+
+        let LDataItemForGivenType = await LItemsExtractedFromClipboard[0].getType(LSelectedDataType);
+
+        if (!LDataItemForGivenType) {
+            throw new Error("Failed to retrieve text data for the given type");
+        }
+
+        let LCopiedText = await LDataItemForGivenType.text();
+        if (!LCopiedText) throw new Error("No Data Copied!");
+
+        return { text: LCopiedText, type: LSelectedDataType };
+    },
+
+    // pvtGetDataForUnstructuredStore: function (p_objData) {
+    //     return p_objData.map(item => ({ fieldType: 'name', extractedData: item }));
+    // },
+
+    // pvtGetDataForTableStore: function (p_arrData, p_arrColumnHeadName) { 
+    //     let LTotalNumberOfColumns = p_arrColumnHeadName.length; 
+
+    //     let LFormattedObjectForStore = [];
+
+    //     for (let LIndex = 0; LIndex < p_arrData.length; LIndex++) {
+    //         LFormattedObjectForStore.push({
+    //             fieldType: p_arrColumnHeadName[LIndex % LTotalNumberOfColumns],
+    //             extractedData: p_arrData[LIndex]
+    //         });
+    //     }
+
+    //     return LFormattedObjectForStore;
+    // },
+
+    // pvtGenerateStoreFromJsonOfUnstructuredData: function (p_jsonData) {
+    //     let LMe = this;
+    //     LMe.GeneratedStore = Ext.create('Ext.data.Store', {
+    //         fields: ['fieldType', 'extractedData'],
+    //         data: p_jsonData,
+    //         filters: [
+    //             /**
+    //             * Filters out records with empty extracted data after tag removal.
+    //             * @param {Ext.data.Model} p_storeItem The record being evaluated by the filter.
+    //             * @returns {Boolean} True if the record's extractedData after tag removal is not null, false otherwise.
+    //             */
+    //             function (p_storeItem) {
+    //                 LCurrentData = gtsCommonUtils().RemoveTagsFromNameField(p_storeItem.get('extractedData'));
+    //                 return LCurrentData !== null;
+    //             }
+    //         ],
+    //     });
+    //     return LMe.GeneratedStore;
+    // },
+
+    // pvtGenerateStoreFromJsonOfTabularData: function (p_jsonData, p_arrColumnHeadName) {
+    //     let LMe = this;
+    //     LMe.GeneratedStore = Ext.create('Ext.data.Store', {
+    //         fields: p_arrColumnHeadName,
+    //         data: p_jsonData,
+    //         filters: [
+    //             /**
+    //             * Filters out records with empty extracted data after tag removal.
+    //             * @param {Ext.data.Model} p_storeItem The record being evaluated by the filter.
+    //             * @returns {Boolean} True if the record's extractedData after tag removal is not null, false otherwise.
+    //             */
+    //             function (p_storeItem) {
+    //                 LCurrentData = gtsCommonUtils().RemoveTagsFromNameField(p_storeItem.get('extractedData'));
+    //                 return LCurrentData !== null;
+    //             }
+    //         ],
+    //     });
+    //     return LMe.GeneratedStore;
+    // },
+
+
+    /**
+     * @private 
+     *  Checks whether the user's browser is compatible or not.
+     * 
+     * @returns {Boolean} true if the browser supports the Clipboard read method 
+     */
+    pvtIsBrowserCompatible: function () {
+        var LBrowserVersion = 0;
+        let LIsCompatibleBool = false;
+
+        //get which browser is being used???
+        if (Ext.isEdge === true) {
+            LBrowserVersion = Ext.ieVersion;
+            LIsCompatibleBool = LBrowserVersion > 78
+        }
+        else if (Ext.isChrome === true) {
+            LBrowserVersion = Ext.chromeVersion;
+            LIsCompatibleBool = LBrowserVersion > 65
+        }
+        else if (Ext.isOpera === true) {
+            LBrowserVersion = Ext.operaVersion;
+            LIsCompatibleBool = LBrowserVersion > 62
+        }
+        else if (Ext.isSafari === true) {
+            LBrowserVersion = Ext.safariVersion;
+            LIsCompatibleBool = LBrowserVersion > 13
+        }
+        return LIsCompatibleBool;
+    },
+
+
+    // /**
+    //  * Destructor function to clean up resources.
+    //  */
+    // listeners: {
+    //     beforedestroy: function () {
+    //         let LMe = this;
+    //         if (Ext.isEmpty(LMe.FGrid) === false) {
+    //             Ext.destroy(LMe.FGrid);
+    //         }
+    //         if (Ext.isEmpty(LMe.FWindow) === false) {
+    //             Ext.destroy(LMe.FWindow);
+    //         }
+    //         if (Ext.isEmpty(LMe.LController) === false) {
+    //             Ext.destroy(LMe.LController);
+    //         }
+    //     }
+    // }
+})
+*/
